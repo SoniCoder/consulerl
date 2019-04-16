@@ -234,14 +234,55 @@ watch_fun(Path, QArgs, Callback, Retry) when Retry > 0 orelse Retry =:= infinity
               consulerl_api:get(self(), Watch, Path, QArgs, true)
           end;
         (Error) ->
+          lager:error("Encountered error"),
           consulerl_util:do(Callback, Error)
       end, Path, [{index, ModifyIndex} | QArgs], true);
+    ({ok, KVList}) ->
+        KvWithMaxModifyIndex = lists_max(KVList,
+                            fun(KVRec) ->
+                                #{modify_index := KVRecModIndex} = KVRec,
+                                KVRecModIndex
+                            end),
+        #{modify_index := ModifyIndex} = KvWithMaxModifyIndex,
+        consulerl_api:get(self(), fun
+        ({ok, ResponseList}) ->
+            ModifiedKV = lists_max(ResponseList,
+                fun(KVRec) ->
+                    #{modify_index := KVRecModIndex} = KVRec,
+                    KVRecModIndex
+                end),
+            consulerl_util:do(Callback, {ok, get_response(ModifiedKV)}),
+            case watch_fun(Path, QArgs, Callback, consulerl_util:dec(Retry)) of
+                ok ->
+                    ok;
+                Watch ->
+                    consulerl_api:get(self(), Watch, Path, QArgs, true)
+            end;
+        (Error) ->
+            lager:error("Encountered error"),
+            consulerl_util:do(Callback, Error)
+        end, Path, [{index, ModifyIndex}, {recurse, true}] ++ QArgs, true);
     (Error) ->
+      lager:error("Encountered error"),
       consulerl_util:do(Callback, Error)
   end;
 
 watch_fun(_, _, _, _) ->
   ok.
+
+lists_max(List, Fun) ->
+    {Max, _MaxW} =
+        lists:foldl(
+            fun(Element, {CurMax, CurMaxWeight}) ->
+                ThisWeight = Fun(Element),
+                case ThisWeight > CurMaxWeight of
+                    true -> {Element, ThisWeight};
+                    false -> {CurMax, CurMaxWeight}
+                end
+            end,
+            {hd(List), Fun(hd(List))},
+            List),
+    Max.
 
 -spec txn_operation(tuple()) -> map().
 txn_operation({set, Key, Value, Flags}) -> #{
