@@ -74,9 +74,9 @@ init([]) ->
   Shutdown = 2000,
   Worker = worker,
 
-  {ok, Host} = application:get_env(consulerl, hostname),
-  {ok, Port} = application:get_env(consulerl, port),
-  {ok, ACL} = application:get_env(consulerl, acl),
+  Host = application:get_env(consulerl, hostname, localhost),
+  Port = application:get_env(consulerl, port, 8500),
+  ACL = application:get_env(consulerl, acl, ""),
 
 
   ClientWorker = {
