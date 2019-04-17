@@ -6,9 +6,9 @@ COVER=1
 LOCAL_DEPS = ssl inets
 PLT_APPS = asn1 crypto public_key ssl inets
 
-DEPS = erlang_uuid lager jiffy hackney
+DEPS = uuid lager jiffy hackney
 
-dep_erlang_uuid = git  https://github.com/travis/erlang-uuid.git   master
+dep_uuid = git https://github.com/avtobiff/erlang-uuid v0.5.1
 dep_lager = git https://github.com/basho/lager.git  "2.2.3"
 dep_jiffy = git https://github.com/davisp/jiffy.git "0.14.8"
 dep_hackney = git https://github.com/benoitc/hackney.git "1.6.1"
@@ -22,7 +22,7 @@ SHELL_DEPS = sync
 
 dep_sync = git  git://github.com/rustyio/sync.git   master
 
-include erlang.mk
+include $(if $(ERLANG_MK_FILENAME),$(ERLANG_MK_FILENAME),erlang.mk)
 
 ERLC_OPTS += -Werror +debug_info +warn_export_vars +warn_shadow_vars +warn_obsolete_guard
 ERLC_OPTS += +'{parse_transform, lager_transform}'
